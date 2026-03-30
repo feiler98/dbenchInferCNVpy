@@ -31,16 +31,31 @@ def val_build_project() -> (Path, Path):
     return path_in, path_out
 
 
-def get_hg_38_file_paths(target_path: Path) -> list:
-    return list(target_path.rglob("*__hg_38__RCM.csv"))
-
-
 def get_hg_38_desc_paths(target_path: Path) -> dict:
+    """
+    These fetched .txt files correlate to .csv RCM files --> describe normal cells within the datasets.
+    """
     return {p.stem: p for p in target_path.rglob("*__hg_38__RCM.txt")}
 
 
-def csvs_to_adatas(target_path: Path):
-    pass
+def csvs_to_adatas(target_path: Path) -> dict:
+    """
+    Generates a dictionary with adata and their respective reference catalogue of normal cells (cell_names).
+    """
+    dict_hg38_desc = get_hg_38_desc_paths(target_path)
+    dict_accepted_files = {}
+    for k, path_txt in dict_hg38_desc.items():
+        path_rcm = Path(target_path) / f"{k}.csv"
+        if path_rcm.exists():
+            adata = sc.read_csv(path_rcm).T
+            adata.obs["cell_names"] = adata.obs.index
+            with open(path_txt, "r") as f:
+                list_norm_cells = list(map(lambda x: x.replace("\n", ""), f.readlines()))
+                dict_accepted_files[k] = {"adata": adata,
+                                          "reference_key": "cell_names",
+                                          "reference_cat":list_norm_cells}
+    return dict_accepted_files
+
 
 def run_py_infercnv(path_target: Path, kwargs: dict = dict) -> pd.DataFrame:
     """
