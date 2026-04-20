@@ -35,7 +35,7 @@ def get_hg_38_desc_paths(target_path: Path) -> dict:
     """
     These fetched .txt files correlate to .csv RCM files --> describe normal cells within the datasets.
     """
-    return {p.stem: p for p in target_path.rglob("*__hg_38__RCM.txt")}
+    return {p.stem: p for p in target_path.rglob("*__hg_38.txt")}
 
 
 def csvs_to_adatas(target_path: Path) -> dict:
@@ -45,7 +45,7 @@ def csvs_to_adatas(target_path: Path) -> dict:
     dict_hg38_desc = get_hg_38_desc_paths(target_path)
     dict_accepted_files = {}
     for k, path_txt in dict_hg38_desc.items():
-        path_rcm = Path(target_path) / f"{k}.csv"
+        path_rcm = Path(target_path) / f"{k}__RCM.csv"
         if path_rcm.exists():
             adata = sc.read_csv(path_rcm).T
             adata.obs["cell_names"] = adata.obs.index
@@ -57,7 +57,7 @@ def csvs_to_adatas(target_path: Path) -> dict:
     return dict_accepted_files
 
 
-def run_py_infercnv(path_target: Path, kwargs: dict = dict) -> pd.DataFrame:
+def run_py_infercnv(path_target: Path, kwargs: dict = {}) -> None:
     """
     Main function for running infercnvpy for benchmarking.
 
@@ -73,28 +73,23 @@ def run_py_infercnv(path_target: Path, kwargs: dict = dict) -> pd.DataFrame:
     pd.DataFrame
         Returns inferred copy number variations as table.
     """
-    adata = ""
+    dict_files = csvs_to_adatas(path_target)
+    for tag_dataset, dict_data in dict_files.items():
+        adata = dict_data["adata"]
+        # gencode hg38 file needed for providing "start", "end", & "chr" information
+        cnv.io.genomic_position_from_gtf("gencode.v38.annotation.gtf", adata)
+        cnv.tl.infercnv(adata, calculate_gene_values=True,
+                        chunksize=100,
+                        reference_key=dict_data["reference_key"],
+                        reference_cat=dict_data["reference_cat"],
+                        **kwargs)
+        cnv_idx = list(adata.obs.index)
 
-    cnv.tl.infercnv(adata, **kwargs)
-    cnv_X = adata.obsm["X_cnv"].toarray()
-
-    # shape of the numpy-array cnv_X
-    shape_tuple = cnv_X.shape
-    cnv_idx = list(adata.obs.index)
-
-    # col_tags
-    chr_start_pos_list = list(adata.uns["cnv"]["chr_pos"].values())
-    chr_tags = list(adata.uns["cnv"]["chr_pos"].keys())
-    chr_start_pos_list_pop_first = chr_start_pos_list[1::]
-    chr_start_pos_list_pop_first.append(shape_tuple[1])
-    dict_chr_end_start_pos = {chr_tag :range(int(e ) -int(s)) for chr_tag, s, e in zip(chr_tags, chr_start_pos_list, chr_start_pos_list_pop_first)}
-
-    cnv_col = []
-    for chr_tag, range_list in dict_chr_end_start_pos.items():
-        for pos in range_list:
-            cnv_col.append(f"{chr_tag}__rel_pos_{pos}")
-    return pd.DataFrame(data=cnv_X, columns=cnv_col, index=cnv_idx).T
+        df_csv_pre = pd.DataFrame(data=adata.layers["gene_values_cnv"], index=cnv_idx).T
+        df_csv = pd.concat([adata.var.reset_index(), df_csv_pre], axis=1).dropna().drop("index", axis=1).set_index("gene_name")
+        str_kwargs = ";".join([f"{x},{y}" for x, y in kwargs.items()])
+        df_csv.to_csv(f"{tag_dataset}__params_{str_kwargs}.csv")
 
 
 if __name__ == "__main__":
-    pass
+    run_py_infercnv(Path("data_input").resolve())
