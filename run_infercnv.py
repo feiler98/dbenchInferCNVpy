@@ -57,7 +57,7 @@ def csvs_to_adatas(target_path: Path) -> dict:
     return dict_accepted_files
 
 
-def run_py_infercnv(path_target: Path, kwargs: dict = {}) -> None:
+def run_py_infercnv(path_target: Path, path_out_data: Path, kwargs: dict = {}) -> None:
     """
     Main function for running infercnvpy for benchmarking.
 
@@ -65,6 +65,8 @@ def run_py_infercnv(path_target: Path, kwargs: dict = {}) -> None:
     ----------
     path_target: Path
         Directory with all datasets for benchmarking.
+    path_out_data: Path
+        Directory where to save the results for benchmarking.
     kwargs: dict
         Key-word-arguments (= kwargs) for infercnvpy.tl.infercnv() function.
 
@@ -79,7 +81,6 @@ def run_py_infercnv(path_target: Path, kwargs: dict = {}) -> None:
         # gencode hg38 file needed for providing "start", "end", & "chr" information
         cnv.io.genomic_position_from_gtf("gencode.v38.annotation.gtf", adata)
         cnv.tl.infercnv(adata, calculate_gene_values=True,
-                        chunksize=100,
                         reference_key=dict_data["reference_key"],
                         reference_cat=dict_data["reference_cat"],
                         **kwargs)
@@ -88,8 +89,23 @@ def run_py_infercnv(path_target: Path, kwargs: dict = {}) -> None:
         df_csv_pre = pd.DataFrame(data=adata.layers["gene_values_cnv"], index=cnv_idx).T
         df_csv = pd.concat([adata.var.reset_index(), df_csv_pre], axis=1).dropna().drop("index", axis=1).set_index("gene_name")
         str_kwargs = ";".join([f"{x},{y}" for x, y in kwargs.items()])
-        df_csv.to_csv(f"{tag_dataset}__params_{str_kwargs}.csv")
+        df_csv.to_csv(path_out_data / f"{tag_dataset}__params_{str_kwargs}.csv")
 
 
 if __name__ == "__main__":
-    run_py_infercnv(Path("data_input").resolve())
+
+    # matrix of possible infercnv_py hyperparameter kwargs
+    kwargs_gridsearch = {
+        "n_jobs": [5, 10, 20],
+        "step": [1, 5, 10, 20],
+        "window_size": [10, 25, 50, 100, 200, 500],
+        "dynamic_threshold": [None, 1, 1.5, 2, 3],
+        "chunksize": [10, 50, 100, 500, 1000],
+    }
+
+    path_in, path_out = val_build_project()
+    run_py_infercnv(path_in, path_out, kwargs={"n_jobs": 1, "chunksize": 100})  # 1 core computing standard params adjusted for calculating gene values
+    list_kwargs = grid_by_dict(kwargs_gridsearch)
+    for kwarg_opt in list_kwargs:
+        print(f"InferCNVpy running with hyperparameters: {kwarg_opt}")
+        run_py_infercnv(path_in, path_out, kwargs=kwarg_opt)
