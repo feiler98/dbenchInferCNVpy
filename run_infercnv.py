@@ -89,7 +89,7 @@ def run_py_infercnv(path_target: Path, path_out_data: Path, kwargs: dict = {}) -
         df_csv_pre = pd.DataFrame(data=adata.layers["gene_values_cnv"], index=cnv_idx).T
         df_csv = pd.concat([adata.var.reset_index(), df_csv_pre], axis=1).dropna().drop("index", axis=1).set_index("gene_name")
         str_kwargs = ";".join([f"{x},{y}" for x, y in kwargs.items()])
-        df_csv.to_csv(path_out_data / f"{tag_dataset}__params_{str_kwargs}.csv")
+        df_csv.to_csv(path_out_data / f"{tag_dataset}__{str_kwargs}__infercnvpy.csv")
 
 
 if __name__ == "__main__":
