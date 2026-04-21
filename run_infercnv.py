@@ -77,19 +77,28 @@ def run_py_infercnv(path_target: Path, path_out_data: Path, kwargs: dict = {}) -
     """
     dict_files = csvs_to_adatas(path_target)
     for tag_dataset, dict_data in dict_files.items():
+        str_kwargs = ";".join([f"{x},{y}" for x, y in kwargs.items()])
+        file_name = f"{tag_dataset}__{str_kwargs}__infercnvpy"
+        data_save_path = path_out_data / file_name
+        data_save_path.mkdir(exist_ok=True)
+
         adata = dict_data["adata"]
         # gencode hg38 file needed for providing "start", "end", & "chr" information
         cnv.io.genomic_position_from_gtf("gencode.v38.annotation.gtf", adata)
-        cnv.tl.infercnv(adata, calculate_gene_values=True,
-                        reference_key=dict_data["reference_key"],
-                        reference_cat=dict_data["reference_cat"],
-                        **kwargs)
+
+        @benchmark_method(data_save_path)
+        def run_infercnvpy_func(adata, dict_data, kwargs):
+            cnv.tl.infercnv(adata, calculate_gene_values=True,
+                            reference_key=dict_data["reference_key"],
+                            reference_cat=dict_data["reference_cat"],
+                            **kwargs)
+
+        run_infercnvpy_func(adata, dict_data, kwargs)
         cnv_idx = list(adata.obs.index)
 
         df_csv_pre = pd.DataFrame(data=adata.layers["gene_values_cnv"], index=cnv_idx).T
         df_csv = pd.concat([adata.var.reset_index(), df_csv_pre], axis=1).dropna().drop("index", axis=1).set_index("gene_name")
-        str_kwargs = ";".join([f"{x},{y}" for x, y in kwargs.items()])
-        df_csv.to_csv(path_out_data / f"{tag_dataset}__{str_kwargs}__infercnvpy.csv")
+        df_csv.to_csv(data_save_path / f"{file_name}.csv")
 
 
 if __name__ == "__main__":
