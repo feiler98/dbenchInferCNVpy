@@ -77,7 +77,7 @@ def run_py_infercnv(path_target: Path, path_out_data: Path, kwargs: dict = {}) -
     """
     dict_files = csvs_to_adatas(path_target)
     for tag_dataset, dict_data in dict_files.items():
-        str_kwargs = ";".join([f"{x},{y}" for x, y in kwargs.items()])
+        str_kwargs = ";".join([f"{list(x)[0]},{y}" for x, y in kwargs.items()])
         file_name = f"{tag_dataset}__{str_kwargs}__infercnvpy"
         data_save_path = path_out_data / file_name
         data_save_path.mkdir(exist_ok=True)
