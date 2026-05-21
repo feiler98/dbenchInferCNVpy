@@ -1,5 +1,6 @@
 FROM feiler98/pyomics_fedora
 
+RUN mkdir -p /scratch/tmp/feiler/dbenchInferCNVpy
 WORKDIR /scratch/tmp/feiler/dbenchInferCNVpy
 COPY . .
 
