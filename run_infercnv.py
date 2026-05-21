@@ -6,7 +6,23 @@ from pyomics.utils import benchmark_method
 import infercnvpy as cnv
 import scanpy as sc
 import itertools
+import random
+import string
 # ----------------------------------------------------------------------------------------------------------------------
+
+def random_sequence(len_seq: int) -> str:
+    list_signs = []
+    list_signs.extend(list(string.ascii_lowercase))
+    list_signs.extend(list(string.ascii_uppercase))
+    list_signs.extend(list(range(0, 10, 1)))
+    random.shuffle(list_signs)
+    print(list_signs)
+    i = 1
+    rand_seq = []
+    while i <= len_seq:
+        rand_seq.append(str(list_signs[random.randint(0, len(list_signs)-1)]))
+        i+=1
+    return "".join(rand_seq)
 
 def grid_by_dict(pars_dict: dict) -> list:
     keys=pars_dict.keys()
