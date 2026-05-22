@@ -16,7 +16,6 @@ def random_sequence(len_seq: int) -> str:
     list_signs.extend(list(string.ascii_uppercase))
     list_signs.extend(list(range(0, 10, 1)))
     random.shuffle(list_signs)
-    print(list_signs)
     i = 1
     rand_seq = []
     while i <= len_seq:
@@ -93,7 +92,7 @@ def run_py_infercnv(path_target: Path, path_out_data: Path, kwargs: dict = {}) -
     """
     dict_files = csvs_to_adatas(path_target)
     for tag_dataset, dict_data in dict_files.items():
-        str_kwargs = ";".join([f"{list(x)[0]},{y}" for x, y in kwargs.items()])
+        str_kwargs = random_sequence(len_seq=8)
         file_name = f"{tag_dataset}__{str_kwargs}__infercnvpy"
         data_save_path = path_out_data / file_name
         data_save_path.mkdir(exist_ok=True)
@@ -103,7 +102,9 @@ def run_py_infercnv(path_target: Path, path_out_data: Path, kwargs: dict = {}) -
         cnv.io.genomic_position_from_gtf("gencode.v38.annotation.gtf", adata)
 
         @benchmark_method(data_save_path)
-        def run_infercnvpy_func(adata, dict_data, kwargs):
+        def run_infercnvpy_func(adata: sc.AnnData,
+                                dict_data: dict,
+                                kwargs: dict):
             cnv.tl.infercnv(adata, calculate_gene_values=True,
                             reference_key=dict_data["reference_key"],
                             reference_cat=dict_data["reference_cat"],
@@ -121,7 +122,7 @@ if __name__ == "__main__":
 
     # matrix of possible infercnv_py hyperparameter kwargs
     kwargs_gridsearch = {
-        "n_jobs": [5, 10, 20],
+        "n_jobs": [30],  # run n_jobs separately with best params
         "step": [1, 5, 10, 20],
         "window_size": [10, 25, 50, 100, 200, 500],
         "dynamic_threshold": [None, 1, 1.5, 2, 3],
