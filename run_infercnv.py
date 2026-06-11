@@ -124,9 +124,9 @@ if __name__ == "__main__":
     kwargs_gridsearch = {
         "n_jobs": [30],  # run n_jobs separately with best params
         "step": [1, 5, 10, 20],
-        "window_size": [10, 25, 50, 100, 200, 500],
+        "window_size": [10, 25, 50, 100, 200],
         "dynamic_threshold": [None, 1, 1.5, 2, 3],
-        "chunksize": [10, 50, 100, 500, 1000],
+        "chunksize": [10, 50, 100, 500],
     }
 
     path_in, path_out = val_build_project()
