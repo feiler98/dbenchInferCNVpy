@@ -122,7 +122,7 @@ if __name__ == "__main__":
 
     # matrix of possible infercnv_py hyperparameter kwargs
     kwargs_gridsearch = {
-        "n_jobs": [30],  # run n_jobs separately with best params
+        "n_jobs": [50],  # run n_jobs separately with best params
         "step": [1, 5, 10, 20],
         "window_size": [10, 25, 50, 100, 200],
         "dynamic_threshold": [None, 1, 1.5, 2, 3],
