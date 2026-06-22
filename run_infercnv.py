@@ -66,9 +66,10 @@ def csvs_to_adatas(target_path: Path) -> dict:
             adata.obs["cell_names"] = adata.obs.index
             with open(path_txt, "r") as f:
                 list_norm_cells = list(map(lambda x: x.replace("\n", ""), f.readlines()))
+                adata.obs["cell_class"] = ["normal" if x in list_norm_cells else "unknown" for x in adata.obs.index]
                 dict_accepted_files[k] = {"adata": adata,
-                                          "reference_key": "cell_names",
-                                          "reference_cat":list_norm_cells}
+                                          "reference_key": "cell_class",
+                                          "reference_cat":["normal"]}
     return dict_accepted_files
 
 
@@ -109,6 +110,7 @@ def run_py_infercnv(path_target: Path, path_out_data: Path, kwargs: dict = {}) -
                             reference_key=dict_data["reference_key"],
                             reference_cat=dict_data["reference_cat"],
                             **kwargs)
+            cnv.pl.chromosome_heatmap(adata, groupby="cell_class")
 
         run_infercnvpy_func(adata, dict_data, kwargs)
         cnv_idx = list(adata.obs.index)
