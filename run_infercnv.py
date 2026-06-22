@@ -110,7 +110,7 @@ def run_py_infercnv(path_target: Path, path_out_data: Path, kwargs: dict = {}) -
                             reference_key=dict_data["reference_key"],
                             reference_cat=dict_data["reference_cat"],
                             **kwargs)
-            cnv.pl.chromosome_heatmap(adata, groupby="cell_class")
+            # cnv.pl.chromosome_heatmap(adata, groupby="cell_class")
 
         run_infercnvpy_func(adata, dict_data, kwargs)
         cnv_idx = list(adata.obs.index)
