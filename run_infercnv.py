@@ -50,26 +50,31 @@ def get_hg_38_desc_paths(target_path: Path) -> dict:
     """
     These fetched .txt files correlate to .csv RCM files --> describe normal cells within the datasets.
     """
-    return {p.stem: p for p in target_path.rglob("*__hg_38.txt")}
+    return {p.stem: p for p in target_path.rglob("*__hg_38__describe.csv")}
 
 
-def csvs_to_adatas(target_path: Path) -> dict:
+def csvs_to_adatas(target_path: Path, precise_annotation: bool = False) -> dict:
     """
     Generates a dictionary with adata and their respective reference catalogue of normal cells (cell_names).
     """
     dict_hg38_desc = get_hg_38_desc_paths(target_path)
     dict_accepted_files = {}
-    for k, path_txt in dict_hg38_desc.items():
-        path_rcm = Path(target_path) / f"{k}__RCM.csv"
+    for k, path_desc in dict_hg38_desc.items():
+        path_rcm = Path(target_path) / f"{k.replace("__describe", "")}__RCM.csv"
         if path_rcm.exists():
             adata = sc.read_csv(path_rcm).T
-            adata.obs["cell_names"] = adata.obs.index
-            with open(path_txt, "r") as f:
-                list_norm_cells = list(map(lambda x: x.replace("\n", ""), f.readlines()))
-                adata.obs["cell_class"] = ["normal" if x in list_norm_cells else "unknown" for x in adata.obs.index]
+            obs_desc_df = pd.read_csv(path_desc, index_col="cell_id").loc[list(adata.obs.index),:]
+            adata.obs = obs_desc_df
+            if precise_annotation:
+                list_cell_type = list(adata.obs["cell_type"].unique())
+                list_cell_type.remove("Tumor")
                 dict_accepted_files[k] = {"adata": adata,
-                                          "reference_key": "cell_class",
-                                          "reference_cat":["normal"]}
+                                          "reference_key": "cell_type",
+                                          "reference_cat":list_cell_type}
+            else:
+                dict_accepted_files[k] = {"adata": adata,
+                                          "reference_key": "cell_category",
+                                          "reference_cat":["Normal"]}
     return dict_accepted_files
 
 
@@ -91,7 +96,9 @@ def run_py_infercnv(path_target: Path, path_out_data: Path, kwargs: dict = {}) -
     pd.DataFrame
         Returns inferred copy number variations as table.
     """
-    dict_files = csvs_to_adatas(path_target)
+    dict_files = csvs_to_adatas(path_target, kwargs["precise_annotation"])
+    kwargs_infercnvpy = kwargs.copy()
+    del kwargs_infercnvpy["precise_annotation"]
     for tag_dataset, dict_data in dict_files.items():
         str_kwargs = random_sequence(len_seq=8)
         file_name = f"{tag_dataset}__{str_kwargs}__infercnvpy"
@@ -101,7 +108,6 @@ def run_py_infercnv(path_target: Path, path_out_data: Path, kwargs: dict = {}) -
         adata = dict_data["adata"]
         # gencode hg38 file needed for providing "start", "end", & "chr" information
         cnv.io.genomic_position_from_gtf(Path(__file__).parent/"gencode.v38.annotation.gtf", adata)
-
         @benchmark_method(data_save_path)
         def run_infercnvpy_func(adata: sc.AnnData,
                                 dict_data: dict,
@@ -112,7 +118,7 @@ def run_py_infercnv(path_target: Path, path_out_data: Path, kwargs: dict = {}) -
                             **kwargs)
             # cnv.pl.chromosome_heatmap(adata, groupby="cell_class")
 
-        run_infercnvpy_func(adata, dict_data, kwargs)
+        run_infercnvpy_func(adata, dict_data, kwargs_infercnvpy)
         cnv_idx = list(adata.obs.index)
 
         df_csv_pre = pd.DataFrame(data=adata.layers["gene_values_cnv"], index=cnv_idx).T
@@ -129,6 +135,7 @@ if __name__ == "__main__":
         "window_size": [10, 25, 50, 100, 200],
         "dynamic_threshold": [None, 1, 1.5, 2, 3],
         "chunksize": [10, 50, 100, 500],
+        "precise_annotation": [True, False]
     }
 
     path_in, path_out = val_build_project()
