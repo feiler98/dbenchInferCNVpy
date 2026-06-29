@@ -96,9 +96,13 @@ def run_py_infercnv(path_target: Path, path_out_data: Path, kwargs: dict = {}) -
     pd.DataFrame
         Returns inferred copy number variations as table.
     """
-    dict_files = csvs_to_adatas(path_target, kwargs["precise_annotation"])
     kwargs_infercnvpy = kwargs.copy()
-    del kwargs_infercnvpy["precise_annotation"]
+    if not "precise_annotation" in kwargs:
+        precise_annotation = False
+    else:
+        precise_annotation = kwargs["precise_annotation"]
+        del kwargs_infercnvpy["precise_annotation"]
+    dict_files = csvs_to_adatas(path_target, precise_annotation)
     for tag_dataset, dict_data in dict_files.items():
         str_kwargs = random_sequence(len_seq=8)
         file_name = f"{tag_dataset}__{str_kwargs}__infercnvpy"
@@ -142,7 +146,6 @@ if __name__ == "__main__":
     }
 
     path_in, path_out = val_build_project()
-    run_py_infercnv(path_in, path_out, kwargs={"n_jobs": 1, "chunksize": 100})  # 1 core computing standard params adjusted for calculating gene values
     list_kwargs = grid_by_dict(kwargs_gridsearch)
     for kwarg_opt in list_kwargs:
         print(f"InferCNVpy running with hyperparameters: {kwarg_opt}")
