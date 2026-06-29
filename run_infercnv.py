@@ -68,11 +68,11 @@ def csvs_to_adatas(target_path: Path, precise_annotation: bool = False) -> dict:
             if precise_annotation:
                 list_cell_type = list(adata.obs["cell_type"].unique())
                 list_cell_type.remove("Tumor")
-                dict_accepted_files[k] = {"adata": adata,
+                dict_accepted_files[k.replace("__describe", "")] = {"adata": adata,
                                           "reference_key": "cell_type",
                                           "reference_cat":list_cell_type}
             else:
-                dict_accepted_files[k] = {"adata": adata,
+                dict_accepted_files[k.replace("__describe", "")] = {"adata": adata,
                                           "reference_key": "cell_category",
                                           "reference_cat":["Normal"]}
     return dict_accepted_files
