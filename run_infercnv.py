@@ -106,12 +106,12 @@ def run_py_infercnv(path_target: Path, path_out_data: Path, kwargs: dict = {}) -
         data_save_path.mkdir(exist_ok=True)
 
         adata = dict_data["adata"]
-        # gencode hg38 file needed for providing "start", "end", & "chr" information
-        cnv.io.genomic_position_from_gtf(Path(__file__).parent/"gencode.v38.annotation.gtf", adata)
         @benchmark_method(data_save_path)
         def run_infercnvpy_func(adata: sc.AnnData,
                                 dict_data: dict,
                                 kwargs: dict):
+            # gencode hg38 file needed for providing "start", "end", & "chr" information
+            cnv.io.genomic_position_from_gtf(Path(__file__).parent / "gencode.v38.annotation.gtf", adata)
             cnv.tl.infercnv(adata, calculate_gene_values=True,
                             reference_key=dict_data["reference_key"],
                             reference_cat=dict_data["reference_cat"],
