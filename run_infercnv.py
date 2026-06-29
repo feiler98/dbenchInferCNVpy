@@ -118,9 +118,12 @@ def run_py_infercnv(path_target: Path, path_out_data: Path, kwargs: dict = {}) -
                             **kwargs)
             # cnv.pl.chromosome_heatmap(adata, groupby="cell_class")
 
-        run_infercnvpy_func(adata, dict_data, kwargs_infercnvpy)
-        cnv_idx = list(adata.obs.index)
 
+        run_infercnvpy_func(adata, dict_data, kwargs_infercnvpy)
+        list_normal_cells = list(adata.obs.where(adata.obs["cell_category"] == "Normal").dropna().index)
+        with open(data_save_path / f"{file_name}__normal_cells.txt", "w") as f:
+            f.write("\n".join(list_normal_cells))
+        cnv_idx = list(adata.obs.index)
         df_csv_pre = pd.DataFrame(data=adata.layers["gene_values_cnv"], index=cnv_idx).T
         df_csv = pd.concat([adata.var.reset_index(), df_csv_pre], axis=1).dropna().drop("index", axis=1).set_index("gene_name")
         df_csv.to_csv(data_save_path / f"{file_name}.csv")
